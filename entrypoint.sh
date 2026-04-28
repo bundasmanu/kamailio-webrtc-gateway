@@ -20,7 +20,7 @@ case "$1" in
         ##start_rsyslogd
         /usr/sbin/kamailio -DD -P ${TMP_FILE_LOCATION}/kamailio.pid -u $STARTER_KAM_USER -g $STARTER_KAM_GROUP -f $CONFIGS_FOLDER/$CFGFILE -m $SHM_MEMORY -M $PKG_MEMORY
         ;;
-    test)
+    test-config)
         /usr/sbin/kamailio -c -DD -P ${TMP_FILE_LOCATION}/kamailio.pid -u $STARTER_KAM_USER -g $STARTER_KAM_GROUP -f $CONFIGS_FOLDER/$CFGFILE -m $SHM_MEMORY -M $PKG_MEMORY
         ;;
     test-version)
