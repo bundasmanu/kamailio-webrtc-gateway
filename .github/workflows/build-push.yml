@@ -4,6 +4,11 @@ name: Docker Build Push
 
 on:
   pull_request:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - '*'
 
 jobs:
 
