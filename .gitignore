@@ -5,4 +5,5 @@
 .vscode
 .history
 .DS_Store
+k8s/scripts
 k8s/README.md
