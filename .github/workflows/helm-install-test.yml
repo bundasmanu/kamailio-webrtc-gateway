@@ -1,0 +1,93 @@
+---
+name: Helm Chart Install Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  helm-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.16.0'
+
+      - name: Set up k3s
+        run: |
+          curl -sfL https://get.k3s.io | sudo sh -
+          mkdir -p ~/.kube
+          sudo k3s kubectl config view --raw > ~/.kube/config
+          sudo chown $(id -u):$(id -g) ~/.kube/config
+          chmod 600 ~/.kube/config
+          # Wait for k3s to be ready
+          for i in $(seq 1 30); do
+            kubectl get nodes 2>/dev/null && break
+            sleep 2
+          done
+          kubectl get nodes
+
+      - name: Setup PostgreSQL and load SQL
+        uses: ./.github/actions/setup-postgres
+
+      - name: Create namespace and webrtc-gateway-secrets
+        run: |
+          kubectl create namespace webrtc-gateway --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret generic webrtc-gateway-secrets \
+            --namespace webrtc-gateway \
+            --from-literal=db-connection="fake:fake@kamailio-db.default.svc.cluster.local/kamailio"
+
+      - name: Create TLS Secret (self-signed via openssl)
+        run: |
+          set -euo pipefail
+          TMP=$(mktemp -d)
+          trap 'rm -rf "$TMP"' EXIT
+          CN="${TLS_CI_CN:-ci.webrtc-gateway.local}"
+          SAN="${TLS_CI_SAN:-$CN}"
+          openssl req -x509 -newkey rsa:4096 -sha256 -days 1 -nodes \
+            -keyout "$TMP/tls.key" -out "$TMP/tls.crt" \
+            -subj "/CN=$CN" \
+            -addext "subjectAltName=DNS:$SAN"
+          kubectl create secret tls kamailio-tls \
+            --cert="$TMP/tls.crt" --key="$TMP/tls.key" \
+            --namespace webrtc-gateway \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Lint chart
+        run: helm lint k8s/helm/webrtc-gateway
+
+      - name: Template chart
+        run: |
+          helm template webrtc-gateway k8s/helm/webrtc-gateway \
+            --namespace webrtc-gateway \
+            --debug \
+            > /dev/null
+
+      - name: Helm install
+        run: |
+          helm upgrade --install webrtc-gateway k8s/helm/webrtc-gateway \
+            --namespace webrtc-gateway
+
+      - name: Wait 1 min
+        run: sleep 60
+
+      - name: Check running pods
+        run: |
+          kubectl get pods -n webrtc-gateway -o wide || true
+          kubectl describe pods -n webrtc-gateway -l app.kubernetes.io/name=webrtc-gateway || true
+          POD=$(kubectl get pods -n webrtc-gateway -l app.kubernetes.io/name=webrtc-gateway -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+          if [ -n "$POD" ]; then
+            kubectl logs -n webrtc-gateway "$POD" --tail=300 || true
+            kubectl logs -n webrtc-gateway "$POD" --previous --tail=300 2>/dev/null || true
+          fi
+
+      - name: Run SIPp OPTIONS check
+        uses: ./.github/actions/build-sipp
+        with:
+          target: 127.0.0.2:5060

@@ -1,0 +1,20 @@
+name: 'Run Kamailio in Docker'
+description: 'Start webrtc-gateway:latest with host network and wait some seconds'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Kamailio (start) with host network
+      shell: bash
+      run: |
+        docker run --rm --network host --env-file .env \
+          -v "$PWD/config.cfg.example:/tmp/config/config.cfg" \
+          webrtc-gateway:latest start &
+        PID=$!
+        for i in $(seq 1 10); do
+          if ! kill -0 $PID 2>/dev/null; then
+            wait $PID
+            exit $?
+          fi
+          sleep 1
+        done
+        echo "Kamailio is up and ready"

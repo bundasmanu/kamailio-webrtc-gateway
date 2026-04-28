@@ -1,0 +1,58 @@
+name: Docker Build, Test DB and Run Kamailio
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - 'master'
+    tags:
+      - '*'
+
+jobs:
+
+  load-env-vars:
+    runs-on: ubuntu-latest
+    outputs:
+      KAMAILIO_VERSION: ${{ env.KAMAILIO_VERSION }}
+      STARTER_KAM_USER: ${{ env.STARTER_KAM_USER }}
+      STARTER_KAM_GROUP: ${{ env.STARTER_KAM_GROUP }}
+      CONFIGS_FOLDER: ${{ env.CONFIGS_FOLDER }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Load environment variables from .env
+        run: grep -v '^#' .env | grep -v '^$' >> $GITHUB_ENV
+
+  setup-postgres-and-run-kamailio:
+    needs: load-env-vars
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup PostgreSQL and load SQL
+        uses: ./.github/actions/setup-postgres
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          target: webrtc-gateway
+          push: false
+          load: true
+          tags: webrtc-gateway:latest
+          platforms: linux/amd64
+          build-args: |
+            KAMAILIO_VERSION=${{ needs.load-env-vars.outputs.KAMAILIO_VERSION }}
+            STARTER_KAM_USER=${{ needs.load-env-vars.outputs.STARTER_KAM_USER }}
+            STARTER_KAM_GROUP=${{ needs.load-env-vars.outputs.STARTER_KAM_GROUP }}
+            CONFIGS_FOLDER=${{ needs.load-env-vars.outputs.CONFIGS_FOLDER }}
+
+      - name: Run Kamailio
+        uses: ./.github/actions/run-kamailio
+
+      - name: Build SIPp and run OPTIONS check
+        uses: ./.github/actions/build-sipp

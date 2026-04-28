@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-webrtc-gateway
+  labels:
+    app.kubernetes.io/name: webrtc-gateway
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: webrtc-gateway
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: webrtc-gateway
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      hostNetwork: {{ .Values.hostNetwork }}
+      containers:
+      - name: webrtc-gateway
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["./entrypoint.sh"]
+        args: ["start"]
+        env:
+        {{- range $key, $value := .Values.env }}
+        - name: {{ $key }}
+          value: {{ $value | quote }}
+        {{- end }}
+
+        {{- if .Values.secrets.existingSecret }}
+        {{- $secretName := .Values.secrets.existingSecret }}
+        - name: DB_CONNECTION
+          valueFrom:
+            secretKeyRef:
+              name: {{ $secretName }}
+              key: db-connection
+        {{- end }}
+        volumeMounts:
+        {{- range .Values.volumeMounts }}
+        - name: {{ .name }}
+          mountPath: {{ .mountPath }}
+          {{- if .subPath }}
+          subPath: {{ .subPath }}
+          {{- end }}
+          readOnly: true
+        {{- end }}
+        {{- if .Values.tls.existingSecret }}
+        - name: tls-certs
+          mountPath: {{ .Values.tls.mountPath }}
+          readOnly: {{ .Values.tls.readOnly | default true }}
+        {{- else if .Values.tls.hostPath }}
+        - name: tls-certs
+          mountPath: {{ .Values.tls.mountPath }}
+          readOnly: {{ .Values.tls.readOnly | default true }}
+        {{- end }}
+        resources:
+          {}
+
+        readinessProbe:
+          exec:
+            command:
+              - bash
+              - -c
+              - |
+                {{- range .Values.sipsak_commands }}
+                {{ . }} &
+                {{- end }}
+                wait
+          periodSeconds: 60
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        startupProbe:
+          exec:
+            command:
+              - bash
+              - -c
+              - |
+                {{- range .Values.sipsak_commands }}
+                {{ . }} &
+                {{- end }}
+                wait
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 5
+
+        livenessProbe:
+          httpGet:
+            scheme: HTTP
+            host: {{ .Values.live_probe_ip }}
+            port: 5060
+            path: /live-probe
+          periodSeconds: 300
+          timeoutSeconds: 10
+          failureThreshold: 3
+
+      volumes:
+      - name: config
+        configMap:
+          name: {{ .Release.Name }}-webrtc-gateway-config
+          defaultMode: 0666
+      {{- if .Values.tls.existingSecret }}
+      - name: tls-certs
+        secret:
+          secretName: {{ .Values.tls.existingSecret }}
+          defaultMode: {{ .Values.tls.secretDefaultMode | default 420 }}
+          items:
+            - key: {{ .Values.tls.secretCertKey | default "tls.crt" }}
+              path: tls.crt
+            - key: {{ .Values.tls.secretKeyKey | default "tls.key" }}
+              path: tls.key
+      {{- else if .Values.tls.hostPath }}
+      - name: tls-certs
+        hostPath:
+          path: {{ .Values.tls.hostPath }}
+          type: {{ .Values.tls.hostPathType | default "Directory" }}
+      {{- end }}

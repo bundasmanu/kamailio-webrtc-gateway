@@ -1,0 +1,69 @@
+---
+
+name: Docker Build Push
+
+on:
+  pull_request:
+
+jobs:
+
+  load-env-vars:
+    runs-on: ubuntu-latest
+    outputs:
+      KAMAILIO_VERSION: ${{ env.KAMAILIO_VERSION }}
+      STARTER_KAM_USER: ${{ env.STARTER_KAM_USER }}
+      STARTER_KAM_GROUP: ${{ env.STARTER_KAM_GROUP }}
+      CONFIGS_FOLDER: ${{ env.CONFIGS_FOLDER }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Load environment variables from .env
+        run: grep -v '^#' .env | grep -v '^$' >> $GITHUB_ENV
+
+  webrtc-gateway-build-image:
+    needs: load-env-vars
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Docker tag
+        id: extract_tag
+        run: |
+          if [[ "${GITHUB_REF}" == refs/heads/main ]]; then
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          elif [[ "${GITHUB_REF}" == refs/heads/* ]]; then
+            branch=${GITHUB_REF#refs/heads/}
+            echo "tag=${branch}" >> $GITHUB_OUTPUT
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            tag=${GITHUB_REF#refs/tags/}
+            echo "tag=${tag}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push Docker image to GHCR and Docker Hub
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/baresip-with-audio:${{ steps.extract_tag.outputs.tag }}
+          build-args: |
+            KAMAILIO_VERSION=${{ needs.load-env-vars.outputs.KAMAILIO_VERSION }}
+            STARTER_KAM_USER=${{ needs.load-env-vars.outputs.STARTER_KAM_USER }}
+            STARTER_KAM_GROUP=${{ needs.load-env-vars.outputs.STARTER_KAM_GROUP }}
+            CONFIGS_FOLDER=${{ needs.load-env-vars.outputs.CONFIGS_FOLDER }}
+          secrets: inherit

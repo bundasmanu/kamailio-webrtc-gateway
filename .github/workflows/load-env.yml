@@ -1,0 +1,21 @@
+---
+
+name: Load Env vars
+
+on:
+  workflow_call:
+
+jobs:
+
+  load-env:
+    runs-on: ubuntu-latest
+    outputs:
+      KAMAILIO_VERSION: ${{ env.KAMAILIO_VERSION }}
+      STARTER_KAM_USER: ${{ env.STARTER_KAM_USER }}
+      STARTER_KAM_GROUP: ${{ env.STARTER_KAM_GROUP }}
+      CONFIGS_FOLDER: ${{ env.CONFIGS_FOLDER }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Load environment variables from .env
+        run: grep -v '^#' .env | grep -v '^$' >> $GITHUB_ENV

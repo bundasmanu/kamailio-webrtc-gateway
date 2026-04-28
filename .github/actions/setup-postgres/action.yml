@@ -1,0 +1,12 @@
+name: Install Kamailio-DB Helm Chart
+description: 'Install Kamailio-DB Helm Chart'
+runs:
+  using: 'composite'
+  steps:
+
+    - name: Install Kamailio-DB Helm Chart
+      shell: bash
+      run: |
+        helm install kamailio-db \
+        oci://ghcr.io/bundasmanu/charts/kamailio-db \
+        --version 0.1.0

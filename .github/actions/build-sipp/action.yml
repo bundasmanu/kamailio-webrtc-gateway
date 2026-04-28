@@ -1,0 +1,28 @@
+name: 'Build SIPp and run OPTIONS check'
+description: 'Pull SIPp image, run OPTIONS against WebRTC-Gateway Proxy'
+inputs:
+  target:
+    description: 'SIP target host:port (e.g. 127.0.0.1:5060 or node-ip:5060 for hostNetwork in K8s)'
+    required: false
+    default: '127.0.0.1:5060'
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout sipp-docker (scenarios)
+      uses: actions/checkout@v6
+      with:
+        repository: bundasmanu/sipp-docker
+        ref: main
+        path: sipp-docker
+
+    - name: Pull SIPp image
+      shell: bash
+      run: docker pull ghcr.io/bundasmanu/sipp:latest
+
+    - name: SIPp OPTIONS check
+      shell: bash
+      run: |
+        docker run --rm --network host \
+          -v "${{ github.workspace }}/sipp-docker/sipp-scenarios:/opt" \
+          ghcr.io/bundasmanu/sipp:latest sipp -i 127.0.0.1 -p 50600 ${{ inputs.target }} \
+          -r 1 -rp 1000 -m 1 -sf /opt/options/options.xml

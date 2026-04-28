@@ -1,0 +1,75 @@
+replicaCount: 1
+
+image:
+  repository: bundasmanu/webrtc-gateway
+  tag: latest
+  pullPolicy: Always
+
+hostNetwork: true
+
+listens:
+  - "127.0.0.2:5060 name \"lan-internal\""
+
+aliases:
+  - "127.0.0.2"
+
+sipsak_commands:
+  - "sipsak -s sip:127.0.0.2:5060 -H 127.0.0.2"
+
+live_probe_ip: "127.0.0.2"
+
+env:
+  CONFIGS_FOLDER: "/etc/kamailio"
+  CFGFILE: "router.cfg"
+  STARTER_KAM_USER: "kamailio"
+  STARTER_KAM_GROUP: "kamailio"
+  SHM_MEMORY: "2048"
+  PKG_MEMORY: "128"
+  RUNDIR: "/var/run/kamailio"
+
+  # Optional: Feature flags (to disable a flag comment its line. true value does not have mean, the important thing is the ENV export)
+  #WITH_DEBUG: "true"
+  WITH_SIPTRACE: "true"
+  WITH_PROM_STATS: "true"
+
+  #WITH_LOG_STDERR: "true"
+  #WITH_ASYNC_INSERT: "true"
+  #WITH_DMQUEUE: "true"
+  #WITH_FAIL2BAN_SUPPORT: "true"
+  #WITH_MID_REGISTRAR_SUPPORT: "true"
+  #ONLY_ONE_INTERNAL_SETID_DISPATCHER: "true"
+
+  ## sockets info
+  DISPATCHER_DEFAULT_SOCKNAME: "lan-internal"
+
+  # Prometheus stats (if WITH_PROM_STATS is enabled)
+  PROM_STATS_LISTEN: "tcp:127.0.0.2:8123"
+
+  WITH_TLS: "true"
+  #TLS_CERTIFICATE: "/etc/kamailio/certs/tls.crt"
+  #TLS_PRIVATE_KEY: "/etc/kamailio/certs/tls.key"
+  # TLS_CIPHER_LIST: "TLSv1.2:HIGH:!aNULL:!eNULL"
+  # TLS_DEFAULT_PORT: "5061"
+
+secrets:
+  # REQUIRED: Set this to point to kube secrets name containing the DB secrets or more if needed to populate env vars
+  existingSecret: "webrtc-gateway-secrets"
+
+# TLS: kubernetes.io/tls Secret (existingSecret), or leave existingSecret empty and set hostPath for a node directory.
+tls:
+  mountPath: "/etc/kamailio/certs"
+  readOnly: true
+  existingSecret: "kamailio-tls"
+  secretCertKey: tls.crt
+  secretKeyKey: tls.key
+  # defaultMode 420 = octal 0644 on projected secret files
+  secretDefaultMode: 420
+  # hostPath: ""
+  # hostPathType: Directory
+
+# Volume configuration
+# Mount ConfigMap to /tmp/config, then copy config.cfg to /etc/kamailio in entrypoint
+# This avoids Kubernetes subPath limitation with existing directories (alternative, mount entire configs folder to /etc/kamailio, personally i prefer this approach)
+volumeMounts:
+  - name: config
+    mountPath: "/tmp/config"

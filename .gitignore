@@ -1,0 +1,8 @@
+*.swp
+.idea/
+*.tar*
+*nbproject*
+.vscode
+.history
+.DS_Store
+k8s/README.md
