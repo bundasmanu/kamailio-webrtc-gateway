@@ -71,4 +71,3 @@ jobs:
             STARTER_KAM_USER=${{ needs.load-env-vars.outputs.STARTER_KAM_USER }}
             STARTER_KAM_GROUP=${{ needs.load-env-vars.outputs.STARTER_KAM_GROUP }}
             CONFIGS_FOLDER=${{ needs.load-env-vars.outputs.CONFIGS_FOLDER }}
-          secrets: inherit
