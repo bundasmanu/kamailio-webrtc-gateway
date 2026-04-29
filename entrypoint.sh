@@ -12,6 +12,16 @@ start_rsyslogd() {
     rsyslogd -n &
 }
 
+copy_config_from_mount() {
+    if [ -f /tmp/config/config.cfg ]; then
+        cp /tmp/config/config.cfg ${CONFIGS_FOLDER}/config.cfg
+        echo "[INFO] Copied config.cfg from /tmp/config to ${CONFIGS_FOLDER}/config.cfg"
+    else
+        echo "[WARN] config.cfg not found in /tmp/config, using existing file if present"
+        exit 1
+    fi
+}
+
 case "$1" in
     shell)
         exec /bin/bash --login
@@ -19,7 +29,8 @@ case "$1" in
     start)
         ##start_rsyslogd
         echo "Hello"
-        /usr/sbin/kamailio -c -DD -u $STARTER_KAM_USER -g $STARTER_KAM_GROUP -f $CONFIGS_FOLDER/$CFGFILE -m $SHM_MEMORY -M $PKG_MEMORY
+        copy_config_from_mount
+        /usr/sbin/kamailio -c -DDD -u $STARTER_KAM_USER -g $STARTER_KAM_GROUP -f $CONFIGS_FOLDER/$CFGFILE -m $SHM_MEMORY -M $PKG_MEMORY
         /usr/sbin/kamailio -DD -u $STARTER_KAM_USER -g $STARTER_KAM_GROUP -f $CONFIGS_FOLDER/$CFGFILE -m $SHM_MEMORY -M $PKG_MEMORY
         ;;
     test-config)
