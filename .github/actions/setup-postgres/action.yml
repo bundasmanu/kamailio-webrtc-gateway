@@ -11,9 +11,9 @@ runs:
         oci://ghcr.io/bundasmanu/charts/kamailio-db \
         --version 0.1.0 --set persistence.enabled=false
 
-    - name: Wait 20 secs
+    - name: Wait until ready
       shell: bash
-      run: sleep 20
+      run: kubectl rollout status statefulset kamailio-db -n default --timeout=120s
 
     - name: Check running pods
       shell: bash
