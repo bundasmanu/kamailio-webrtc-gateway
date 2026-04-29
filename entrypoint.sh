@@ -18,6 +18,8 @@ case "$1" in
         ;;
     start)
         ##start_rsyslogd
+        echo "Hello"
+        /usr/sbin/kamailio -c -DD -u $STARTER_KAM_USER -g $STARTER_KAM_GROUP -f $CONFIGS_FOLDER/$CFGFILE -m $SHM_MEMORY -M $PKG_MEMORY
         /usr/sbin/kamailio -DD -u $STARTER_KAM_USER -g $STARTER_KAM_GROUP -f $CONFIGS_FOLDER/$CFGFILE -m $SHM_MEMORY -M $PKG_MEMORY
         ;;
     test-config)
