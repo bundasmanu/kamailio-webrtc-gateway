@@ -82,12 +82,19 @@ jobs:
 
           kubectl wait --for=condition=Ready pod/dns-debug -n webrtc-gateway --timeout=30s || true
 
+          kubectl exec -n webrtc-gateway dns-debug --sh -c '
+              for i in $(seq 1 30); do
+                nslookup kamailio-db.default.svc.cluster.local || echo FAIL
+                sleep 1
+              done
+            '
+
           kubectl exec -n webrtc-gateway dns-debug -- sh -c '
             echo "=== RESOLVE DB ==="
-            nslookup kamailio-db || true
+            nslookup kamailio-db.default.svc.cluster.local || true
 
             echo "=== TCP TEST ==="
-            nc -zv kamailio-db 5432 || true
+            nc -zv kamailio-db.default.svc.cluster.local 5432 || true
 
             echo "=== RESOLV CONF ==="
             cat /etc/resolv.conf
@@ -97,10 +104,10 @@ jobs:
           '
 
           echo "=== SIMPLE QUERY ==="
-          psql -h kamailio-db -U fake -d kamailio -c "SELECT 1;"
+          psql -h kamailio-db.default.svc.cluster.local -U fake -d kamailio -c "SELECT 1;"
 
           echo "=== TABLE CHECK ==="
-          psql -h kamailio-db -U fake -d kamailio -c "\dt"
+          psql -h kamailio-db.default.svc.cluster.local -U fake -d kamailio -c "\dt"
 
           kubectl logs -n webrtc-gateway dns-debug || true
 
