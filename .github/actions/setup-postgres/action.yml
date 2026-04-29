@@ -50,30 +50,6 @@ runs:
         kubectl get sts kamailio-db -n default -o jsonpath='{.spec.volumeClaimTemplates}' || true
         kubectl get pod kamailio-db-0 -n default -o jsonpath='{.spec.volumes}' || true
 
-    - name: DNS validation matrix (cross-namespace)
-      shell: bash
-      run: |
-        for ns in default webrtc-gateway; do
-          echo "=============================="
-          echo "Testing from namespace: $ns"
-          echo "=============================="
-
-          kubectl run dns-test \
-            --rm -i --restart=Never \
-            --image=busybox:1.36 \
-            -n "$ns" \
-            -- sh -c '
-              echo "FULL FQDN:"
-              nslookup kamailio-db.default.svc.cluster.local || true
-
-              echo "SHORT NAME:"
-              nslookup kamailio-db || true
-
-              echo "TCP CONNECT:"
-              nc -zv kamailio-db.default.svc.cluster.local 5432 || true
-            '
-        done
-
     - name: Validate DB connection from external pod
       shell: bash
       run: |
