@@ -69,6 +69,28 @@ jobs:
           helm upgrade --install webrtc-gateway k8s/helm/webrtc-gateway \
             --namespace webrtc-gateway
 
+      - name: DNS debug in webrtc-gateway namespace
+        run: |
+          kubectl run dns-debug \
+            --rm -i --restart=Never \
+            --image=busybox:1.36 \
+            --namespace webrtc-gateway \
+            -- sh -c '
+              echo "=== RESOLVE DB ==="
+              nslookup kamailio-db.default.svc.cluster.local || true
+
+              echo "=== TCP TEST ==="
+              nc -zv kamailio-db.default.svc.cluster.local 5432 || true
+
+              echo "=== /etc/resolv.conf ==="
+              cat /etc/resolv.conf
+
+              echo "=== ROUTES ==="
+              ip route || true
+
+              sleep 2
+            '
+
       - name: Wait 1 min
         run: sleep 60
 
