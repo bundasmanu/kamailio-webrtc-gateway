@@ -69,6 +69,9 @@ jobs:
           helm upgrade --install webrtc-gateway k8s/helm/webrtc-gateway \
             --namespace webrtc-gateway
 
+      - name: Wait 1 min
+        run: sleep 60
+
       - name: DNS debug pod (persistent)
         run: |
           kubectl run dns-debug \
@@ -96,9 +99,6 @@ jobs:
           kubectl logs -n webrtc-gateway dns-debug || true
 
           kubectl delete pod dns-debug -n webrtc-gateway || true
-
-      - name: Wait 1 min
-        run: sleep 60
 
       - name: Debug webrtc-gateway pods
         if: always()
