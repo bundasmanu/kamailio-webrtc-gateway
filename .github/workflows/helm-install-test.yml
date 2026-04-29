@@ -96,6 +96,12 @@ jobs:
             ip route || true
           '
 
+          echo "=== SIMPLE QUERY ==="
+          psql -h kamailio-db.default.svc.cluster.local -U fake -d kamailio -c "SELECT 1;"
+
+          echo "=== TABLE CHECK ==="
+          psql -h kamailio-db.default.svc.cluster.local -U fake -d kamailio -c "\dt"
+
           kubectl logs -n webrtc-gateway dns-debug || true
 
           kubectl delete pod dns-debug -n webrtc-gateway || true
