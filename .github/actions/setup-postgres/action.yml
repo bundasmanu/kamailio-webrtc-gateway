@@ -20,8 +20,6 @@ runs:
       run: |
         kubectl get pods -A | grep kamailio-db
         kubectl describe pods -n default
-        kubectl get pvc -n default
-        kubectl describe pvc data-kamailio-db-0 -n default
         kubectl describe pod kamailio-db-0 -n default
         kubectl logs -n default kamailio-db-0 --tail=300 || true
         kubectl get sts kamailio-db -o jsonpath='{.spec.volumeClaimTemplates}'
