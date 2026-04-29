@@ -29,7 +29,7 @@ env:
 
   # Optional: Feature flags (to disable a flag comment its line. true value does not have mean, the important thing is the ENV export)
   #WITH_DEBUG: "true"
-  WITH_SIPTRACE: "true"
+  #WITH_SIPTRACE: "true"
   WITH_PROM_STATS: "true"
 
   #WITH_LOG_STDERR: "true"
