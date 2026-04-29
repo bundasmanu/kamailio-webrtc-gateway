@@ -34,15 +34,14 @@ runs:
           --namespace default \
           -- sh -c '
             echo "=== DNS RESOLUTION ==="
-            nslookup kamailio-db.kamailio-db.svc.cluster.local || true
-            nslookup kamailio-db.kamailio-db || true
+            nslookup kamailio-db.default.svc.cluster.local || true
 
             echo "=== TCP CONNECTIVITY ==="
-            nc -zv kamailio-db.kamailio-db 5432 || true
+            nc -zv kamailio-db.default.svc.cluster.local 5432 || true
 
             echo "=== LOOP UNTIL DB READY ==="
             for i in $(seq 1 30); do
-              nc -z kamailio-db.kamailio-db 5432 && echo "DB reachable" && exit 0
+              nc -z kamailio-db.default.svc.cluster.local 5432 && echo "DB reachable" && exit 0
               echo "Waiting for DB..."
               sleep 2
             done
@@ -62,10 +61,10 @@ runs:
           --command -- sh -c '
             echo "=== WAIT FOR DB ==="
             for i in $(seq 1 30); do
-              pg_isready -h kamailio-db.kamailio-db -U fake && break
+              pg_isready -h kamailio-db.default.svc.cluster.local -U fake && break
               sleep 2
             done
 
             echo "=== RUN QUERY ==="
-            psql -h kamailio-db.kamailio-db -U fake -d kamailio -c "SELECT 1;"
+            psql -h kamailio-db.default.svc.cluster.local -U fake -d kamailio -c "SELECT 1;"
           '
