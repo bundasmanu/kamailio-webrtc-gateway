@@ -10,3 +10,19 @@ runs:
         helm install kamailio-db \
         oci://ghcr.io/bundasmanu/charts/kamailio-db \
         --version 0.1.0
+
+    - name: Wait 20 secs
+      shell: bash
+      run: sleep 20
+
+    - name: Check running pods
+      shell: bash
+      run: |
+        kubectl get pods -A | grep kamailio-db
+        kubectl get pods -n default -o wide || true
+        kubectl describe pods -n default -l app.kubernetes.io/name=default || true
+        POD=$(kubectl get pods -n default -l app.kubernetes.io/name=default -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+        if [ -n "$POD" ]; then
+          kubectl logs -n default "$POD" --tail=300 || true
+          kubectl logs -n default "$POD" --previous --tail=300 2>/dev/null || true
+        fi
