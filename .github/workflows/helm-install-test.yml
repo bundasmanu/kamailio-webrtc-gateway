@@ -72,15 +72,42 @@ jobs:
       - name: Wait 1 min
         run: sleep 60
 
-      - name: Check running pods
+      - name: Debug webrtc-gateway pods
+        if: always()
         run: |
-          kubectl get pods -n webrtc-gateway -o wide || true
+          set -e
+
+          echo "=== PODS ==="
+          kubectl get pods -n webrtc-gateway -o wide
+
+          echo "=== DEPLOYMENT STATUS ==="
+          kubectl get deployment -n webrtc-gateway -o wide || true
+
+          echo "=== POD DETAILS ==="
           kubectl describe pods -n webrtc-gateway -l app.kubernetes.io/name=webrtc-gateway || true
-          POD=$(kubectl get pods -n webrtc-gateway -l app.kubernetes.io/name=webrtc-gateway -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
-          if [ -n "$POD" ]; then
-            kubectl logs -n webrtc-gateway "$POD" --tail=300 || true
-            kubectl logs -n webrtc-gateway "$POD" --previous --tail=300 2>/dev/null || true
+
+          echo "=== RECENT EVENTS (IMPORTANT) ==="
+          kubectl get events -n webrtc-gateway --sort-by=.lastTimestamp | tail -n 30 || true
+
+          POD=$(kubectl get pods -n webrtc-gateway -l app.kubernetes.io/name=webrtc-gateway \
+            -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+
+          if [ -z "$POD" ]; then
+            echo "No pods found"
+            exit 0
           fi
+
+          echo "=== TARGET POD: $POD ==="
+
+          echo "=== CONTAINER STATE ==="
+          kubectl get pod -n webrtc-gateway "$POD" -o jsonpath='{.status.containerStatuses[*].state}' || true
+          echo
+
+          echo "=== LAST LOGS ==="
+          kubectl logs -n webrtc-gateway "$POD" --tail=300 || true
+
+          echo "=== PREVIOUS LOGS (CRASH) ==="
+          kubectl logs -n webrtc-gateway "$POD" --previous --tail=300 || true
 
       - name: Run SIPp OPTIONS check
         uses: ./.github/actions/build-sipp
