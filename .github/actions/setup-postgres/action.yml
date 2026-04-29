@@ -24,3 +24,48 @@ runs:
         kubectl logs -n default kamailio-db-0 --tail=300 || true
         kubectl get sts kamailio-db -o jsonpath='{.spec.volumeClaimTemplates}'
         kubectl get pod kamailio-db-0 -o jsonpath='{.spec.volumes}'
+
+    - name: Debug DNS and DB connectivity (cross-namespace)
+      shell: bash
+      run: |
+        kubectl run dns-debug \
+          --rm -i --restart=Never \
+          --image=busybox:1.36 \
+          --namespace default \
+          -- sh -c '
+            echo "=== DNS RESOLUTION ==="
+            nslookup kamailio-db.kamailio-db.svc.cluster.local || true
+            nslookup kamailio-db.kamailio-db || true
+
+            echo "=== TCP CONNECTIVITY ==="
+            nc -zv kamailio-db.kamailio-db 5432 || true
+
+            echo "=== LOOP UNTIL DB READY ==="
+            for i in $(seq 1 30); do
+              nc -z kamailio-db.kamailio-db 5432 && echo "DB reachable" && exit 0
+              echo "Waiting for DB..."
+              sleep 2
+            done
+
+            echo "DB NOT REACHABLE"
+            exit 1
+          '
+
+    - name: Validate DB connection from external pod
+      shell: bash
+      run: |
+        kubectl run psql-client \
+          --rm -i --restart=Never \
+          --image=postgres:17 \
+          --namespace default \
+          --env="PGPASSWORD=fake" \
+          --command -- sh -c '
+            echo "=== WAIT FOR DB ==="
+            for i in $(seq 1 30); do
+              pg_isready -h kamailio-db.kamailio-db -U fake && break
+              sleep 2
+            done
+
+            echo "=== RUN QUERY ==="
+            psql -h kamailio-db.kamailio-db -U fake -d kamailio -c "SELECT 1;"
+          '
