@@ -4,12 +4,12 @@ runs:
   using: 'composite'
   steps:
 
-    - name: Install Kamailio-DB Helm Chart
+    - name: Install Kamailio-DB Helm Chart (PVC disabled)
       shell: bash
       run: |
         helm install kamailio-db \
         oci://ghcr.io/bundasmanu/charts/kamailio-db \
-        --version 0.1.0
+        --version 0.1.0 --set persistence.enabled=false
 
     - name: Wait 20 secs
       shell: bash

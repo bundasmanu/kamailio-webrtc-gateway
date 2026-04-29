@@ -35,12 +35,6 @@ jobs:
           done
           kubectl get nodes
 
-      - name: Setup Local Path for PVC
-        run: |
-          kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
-          kubectl -n local-path-storage rollout status deployment/local-path-provisioner --timeout=60s
-          kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
-
       - name: Setup PostgreSQL and load SQL
         uses: ./.github/actions/setup-postgres
 
