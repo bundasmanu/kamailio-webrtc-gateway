@@ -63,7 +63,7 @@ runs:
 
             for i in $(seq 1 30); do
               pg_isready \
-                -h kamailio-db.default \
+                -h kamailio-db.default.svc.cluster.local..svc.cluster.local \
                 -U fake \
                 -d kamailio && exit 0
 
