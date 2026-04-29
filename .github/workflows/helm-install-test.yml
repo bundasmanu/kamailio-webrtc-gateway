@@ -82,7 +82,7 @@ jobs:
 
           kubectl wait --for=condition=Ready pod/dns-debug -n webrtc-gateway --timeout=30s || true
 
-          kubectl exec -n webrtc-gateway dns-debug --sh -c '
+          kubectl exec -n webrtc-gateway dns-debug -- sh -c '
               for i in $(seq 1 30); do
                 nslookup kamailio-db.default.svc.cluster.local || echo FAIL
                 sleep 1
