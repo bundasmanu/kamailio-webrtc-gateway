@@ -24,17 +24,31 @@ jobs:
       - name: Set up k3s
         run: |
           curl -sfL https://get.k3s.io | sudo sh -
+
           mkdir -p ~/.kube
           sudo k3s kubectl config view --raw > ~/.kube/config
           sudo chown $(id -u):$(id -g) ~/.kube/config
           chmod 600 ~/.kube/config
-          # Wait for k3s to be ready
-          for i in $(seq 1 30); do
-            kubectl get nodes 2>/dev/null && break
-            sleep 2
-          done
+
+          export KUBECONFIG=~/.kube/config
+
+          echo "Waiting for node..."
           kubectl get nodes
 
+          echo "Waiting for system pods..."
+          kubectl -n kube-system get pods
+
+          echo "Waiting for flannel..."
+          kubectl -n kube-system rollout status ds/kube-flannel-ds --timeout=60s
+
+          echo "Waiting for subnet file..."
+          for i in {1..30}; do
+            if [ -f /run/flannel/subnet.env ]; then
+              echo "Flannel ready"
+              break
+            fi
+            sleep 2
+          done
       - name: Setup PostgreSQL and load SQL
         uses: ./.github/actions/setup-postgres
 
