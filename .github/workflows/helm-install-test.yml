@@ -112,6 +112,10 @@ jobs:
           kubectl exec -n webrtc-gateway dns-debug -- env PGPASSWORD=fake \
             psql -h kamailio-db.default.svc.cluster.local. -U fake -d kamailio -c '\dt'
 
+          echo "=== VIEW CHECK ==="
+          kubectl exec -n kamailio-db "$POD" -- \
+            psql -U fake -d kamailio -c "\dv"
+
           kubectl logs -n webrtc-gateway dns-debug || true
 
           kubectl delete pod dns-debug -n webrtc-gateway || true
