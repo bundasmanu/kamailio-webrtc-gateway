@@ -108,13 +108,17 @@ jobs:
           kubectl exec -n webrtc-gateway dns-debug -- env PGPASSWORD=fake \
             psql -h kamailio-db.default.svc.cluster.local. -U fake -d kamailio -c "SELECT 1;"
 
+          echo "=== SIMPLE QUERY FOR VERSION CHECKING ==="
+          kubectl exec -n webrtc-gateway dns-debug -- env PGPASSWORD=fake \
+            psql -h kamailio-db.default.svc.cluster.local. -U fake -d kamailio -c "SELECT * from version;"
+
           echo "=== TABLE CHECK ==="
           kubectl exec -n webrtc-gateway dns-debug -- env PGPASSWORD=fake \
             psql -h kamailio-db.default.svc.cluster.local. -U fake -d kamailio -c '\dt'
 
           echo "=== VIEW CHECK ==="
-          kubectl exec -n kamailio-db "$POD" -- \
-            psql -U fake -d kamailio -c "\dv"
+          kubectl exec -n webrtc-gateway dns-debug -- env PGPASSWORD=fake \
+            psql -h kamailio-db.default.svc.cluster.local. -U fake -d kamailio -c '\dv'
 
           kubectl logs -n webrtc-gateway dns-debug || true
 
