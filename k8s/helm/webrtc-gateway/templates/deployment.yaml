@@ -19,6 +19,9 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       hostNetwork: {{ .Values.hostNetwork }}
+      {{- if .Values.hostNetwork }}
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
       containers:
       - name: webrtc-gateway
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
