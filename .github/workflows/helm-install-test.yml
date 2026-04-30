@@ -163,25 +163,26 @@ jobs:
           echo "=== PREVIOUS LOGS (CRASH) ==="
           kubectl logs -n webrtc-gateway "$POD" --previous --tail=300 || true
 
-      # Kamailio uses hostNetwork on the k3d node; SIPp must join that node's Docker netns (not the runner).
-      - name: Resolve k3d server container (SIPp Docker netns)
+      # hostNetwork pod shares the *scheduled node's* netns. With k3d agents, Kamailio may be on
+      # k3d-ci-agent-0, not k3d-ci-server-0 — SIPp must docker-run --network container:<that node>.
+      - name: Resolve k3d node container for webrtc-gateway (SIPp Docker netns)
         id: k3d_server
         run: |
           set -euo pipefail
-          EXPECTED="k3d-${K3D_CLUSTER_NAME}-server-0"
-          if docker inspect "$EXPECTED" >/dev/null 2>&1; then
-            echo "name=${EXPECTED}" >> "$GITHUB_OUTPUT"
-            echo "Using k3d server container: ${EXPECTED}"
-            exit 0
+          NODE=$(kubectl get pods -n webrtc-gateway -l app.kubernetes.io/name=webrtc-gateway \
+            -o jsonpath='{.items[0].spec.nodeName}')
+          if [ -z "${NODE}" ]; then
+            echo "No webrtc-gateway pod / nodeName" >&2
+            kubectl get pods -n webrtc-gateway -o wide || true
+            exit 1
           fi
-          NAME=$(docker ps --format '{{.Names}}' | grep -E '^k3d-.*-server-0$' | head -n1 || true)
-          if [ -z "${NAME}" ]; then
-            echo "Could not find k3d server container (tried ${EXPECTED} and k3d-*-server-0)" >&2
+          if ! docker inspect "${NODE}" >/dev/null 2>&1; then
+            echo "Kubernetes node ${NODE} has no matching Docker container (expected k3d node name == container name)" >&2
             docker ps -a
             exit 1
           fi
-          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
-          echo "Using k3d server container: ${NAME}"
+          echo "name=${NODE}" >> "$GITHUB_OUTPUT"
+          echo "SIPp will join Docker netns of node ${NODE} (where hostNetwork Kamailio runs)"
 
       - name: Run SIPp OPTIONS check
         uses: ./.github/actions/build-sipp
