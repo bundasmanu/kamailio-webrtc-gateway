@@ -31,6 +31,14 @@ runs:
       run: |
         set -euo pipefail
         CONTAINER_NET="${{ inputs.container_network }}"
+        # Fallback if caller omits input or step output was empty: job env K3D_CLUSTER_NAME + docker inspect
+        if [ -z "${CONTAINER_NET}" ] && [ -n "${K3D_CLUSTER_NAME:-}" ]; then
+          CAND="k3d-${K3D_CLUSTER_NAME}-server-0"
+          if docker inspect "${CAND}" >/dev/null 2>&1; then
+            CONTAINER_NET="${CAND}"
+            echo "SIPp auto-selected container network: ${CONTAINER_NET}"
+          fi
+        fi
         if [ -n "$CONTAINER_NET" ]; then
           NET_FLAG=(--network "container:${CONTAINER_NET}")
           echo "SIPp using network namespace of container: ${CONTAINER_NET}"
