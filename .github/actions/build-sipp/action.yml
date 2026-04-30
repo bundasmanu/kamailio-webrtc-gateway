@@ -5,6 +5,13 @@ inputs:
     description: 'SIP target host:port (e.g. 127.0.0.1:5060 or node-ip:5060 for hostNetwork in K8s)'
     required: false
     default: '127.0.0.1:5060'
+  container_network:
+    description: >-
+      When set, SIPp runs with docker --network container:<name> so it shares the
+      k3d node netns (where hostNetwork pods listen on 127.0.0.x). The runner
+      --network host cannot reach those addresses on k3d.
+    required: false
+    default: ''
 runs:
   using: 'composite'
   steps:
@@ -22,7 +29,16 @@ runs:
     - name: SIPp OPTIONS check
       shell: bash
       run: |
-        docker run --rm --network host \
+        set -euo pipefail
+        CONTAINER_NET="${{ inputs.container_network }}"
+        if [ -n "$CONTAINER_NET" ]; then
+          NET_FLAG=(--network "container:${CONTAINER_NET}")
+          echo "SIPp using network namespace of container: ${CONTAINER_NET}"
+        else
+          NET_FLAG=(--network host)
+          echo "SIPp using host network (runner)"
+        fi
+        docker run --rm "${NET_FLAG[@]}" \
           -v "${{ github.workspace }}/sipp-docker/sipp-scenarios:/opt" \
           ghcr.io/bundasmanu/sipp:latest sipp -i 127.0.0.1 -p 50600 ${{ inputs.target }} \
           -r 1 -rp 1000 -m 1 -sf /opt/options/options.xml
