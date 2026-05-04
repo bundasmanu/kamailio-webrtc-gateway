@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-webrtc-gateway-config
+  name: {{ .Values.instanceName }}-config
   labels:
     app.kubernetes.io/name: webrtc-gateway
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/instance: {{ .Values.instanceName }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
   config.cfg: |

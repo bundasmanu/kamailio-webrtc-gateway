@@ -1,14 +1,16 @@
 # RollingUpdate is used for StatefulSet updates (default). OnDelete is an alternative if you need
 # manual rollout control for VoIP; not required for typical Kamailio upgrades.
 #
-# Headless Service:
-#   metadata.name: <Release.Name>-headless  (matches StatefulSet spec.serviceName)
-#   Stable pod FQDN: <statefulset-name>-<ordinal>.<headless-svc>.<namespace>.svc.cluster.local
-#   Example: myrel-webrtc-gateway-0.myrel-headless.default.svc.cluster.local
+# instanceName: headless Service name, StatefulSet name, ConfigMap (<instanceName>-config).
+# Pods: <instanceName>-0, <instanceName>-1, ...  FQDN:
+#   <instanceName>-<ordinal>.<instanceName>.<namespace>.svc.cluster.local
+# Only one release per namespace should share the same instanceName (fixed K8s names, not Helm release).
 #
 # hostNetwork: true with replicaCount > 1 on the same node usually fails (same ports).
 # For multiple replicas: use one pod per node (pod anti-affinity / topology spread) or disable
 # hostNetwork for scale-out. Full HA SIP routing (dispatcher, stickiness) is outside this chart.
+
+instanceName: webrtc-gateway
 
 replicaCount: 1
 
