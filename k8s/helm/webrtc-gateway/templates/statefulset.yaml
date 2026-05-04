@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ .Release.Name }}-webrtc-gateway
   labels:
@@ -7,6 +7,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  serviceName: {{ printf "%s-headless" .Release.Name }}
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
@@ -60,8 +61,7 @@ spec:
           mountPath: {{ .Values.tls.mountPath }}
           readOnly: {{ .Values.tls.readOnly | default true }}
         {{- end }}
-        resources:
-          {}
+        resources: {}
 
         readinessProbe:
           exec:
@@ -122,3 +122,5 @@ spec:
           path: {{ .Values.tls.hostPath }}
           type: {{ .Values.tls.hostPathType | default "Directory" }}
       {{- end }}
+  updateStrategy:
+    type: RollingUpdate
