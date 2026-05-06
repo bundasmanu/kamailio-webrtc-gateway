@@ -31,6 +31,32 @@ jobs:
           args: >-
             --agents 1
 
+      # Hub image `latest` may lag this repo; Kamailio needs entrypoint substitution for
+      # __KAMAILIO_LISTEN_ADDR__. Build from Dockerfile and import into k3d so CI matches git HEAD.
+      - name: Load build environment (.env)
+        run: grep -v '^#' .env | grep -v '^$' >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build webrtc-gateway image (ci tag)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: webrtc-gateway
+          push: false
+          load: true
+          tags: bundasmanu/webrtc-gateway:ci
+          platforms: linux/amd64
+          build-args: |
+            KAMAILIO_VERSION=${{ env.KAMAILIO_VERSION }}
+            STARTER_KAM_USER=${{ env.STARTER_KAM_USER }}
+            STARTER_KAM_GROUP=${{ env.STARTER_KAM_GROUP }}
+            CONFIGS_FOLDER=${{ env.CONFIGS_FOLDER }}
+
+      - name: Import image into k3d cluster
+        run: k3d image import bundasmanu/webrtc-gateway:ci -c "${{ env.K3D_CLUSTER_NAME }}"
+
       - name: Setup PostgreSQL and load SQL
         uses: ./.github/actions/setup-postgres
 
@@ -73,7 +99,9 @@ jobs:
       - name: Helm install
         run: |
           helm upgrade --install webrtc-gateway k8s/helm/webrtc-gateway \
-            --namespace webrtc-gateway
+            --namespace webrtc-gateway \
+            --set image.tag=ci \
+            --set image.pullPolicy=IfNotPresent
 
       - name: Wait 1 min
         run: sleep 60
