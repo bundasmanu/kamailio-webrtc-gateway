@@ -24,7 +24,7 @@ image:
   tag: latest
   pullPolicy: Always
 
-hostNetwork: true
+hostNetwork: false
 
 listens:
   - "__KAMAILIO_LISTEN_ADDR__:5060 name \"lan-internal\""
