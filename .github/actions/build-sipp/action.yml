@@ -2,14 +2,15 @@ name: 'Build SIPp and run OPTIONS check'
 description: 'Pull SIPp image, run OPTIONS against WebRTC-Gateway Proxy'
 inputs:
   target:
-    description: 'SIP target host:port (e.g. 127.0.0.1:5060 or node-ip:5060 for hostNetwork in K8s)'
+    description: 'SIP target host:port (e.g. pod IP:5060 in k3d, or node-ip:5060 with hostNetwork)'
     required: false
     default: '127.0.0.1:5060'
   container_network:
     description: >-
       When set, SIPp runs with docker --network container:<name> so it shares the
-      k3d node netns (where hostNetwork pods listen on 127.0.0.x). The runner
-      --network host cannot reach those addresses on k3d.
+      k3d node netns (needed to reach Pod CIDR from the runner). Do not force SIPp
+      Via/Contact to 127.0.0.1 when targeting a pod IP—Kamailio would reply to the
+      pod loopback and SIPp would see no responses.
     required: false
     default: ''
 runs:
@@ -48,5 +49,5 @@ runs:
         fi
         docker run --rm "${NET_FLAG[@]}" \
           -v "${{ github.workspace }}/sipp-docker/sipp-scenarios:/opt" \
-          ghcr.io/bundasmanu/sipp:latest sipp -i 127.0.0.1 -p 50600 ${{ inputs.target }} \
+          ghcr.io/bundasmanu/sipp:latest sipp -p 50600 ${{ inputs.target }} \
           -r 1 -rp 1000 -m 1 -sf /opt/options/options.xml
