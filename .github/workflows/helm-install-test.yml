@@ -62,10 +62,13 @@ jobs:
 
       - name: Template chart
         run: |
+          set -euo pipefail
           helm template webrtc-gateway k8s/helm/webrtc-gateway \
             --namespace webrtc-gateway \
             --debug \
-            > /dev/null
+            > /tmp/webrtc-gateway-rendered.yaml
+          grep -q '__KAMAILIO_LISTEN_ADDR__' /tmp/webrtc-gateway-rendered.yaml
+          ! grep -q '127\.0\.0\.2' /tmp/webrtc-gateway-rendered.yaml
 
       - name: Helm install
         run: |
@@ -168,8 +171,18 @@ jobs:
           echo "name=${NODE}" >> "$GITHUB_OUTPUT"
           echo "SIPp will join Docker netns of node ${NODE} (where hostNetwork Kamailio runs)"
 
+      - name: SIP target (pod IP for hostNetwork)
+        id: sipp_target
+        run: |
+          set -euo pipefail
+          POD_IP=$(kubectl get pod -n webrtc-gateway webrtc-gateway-0 \
+            -o jsonpath='{.status.podIP}')
+          test -n "${POD_IP}"
+          echo "SIPp target ${POD_IP}:5060 (pod IP; Kamailio listens on pod DNS after substitution)"
+          echo "address=${POD_IP}:5060" >> "$GITHUB_OUTPUT"
+
       - name: Run SIPp OPTIONS check
         uses: ./.github/actions/build-sipp
         with:
-          target: 127.0.0.2:5060
+          target: ${{ steps.sipp_target.outputs.address }}
           container_network: ${{ steps.k3d_server.outputs.name }}

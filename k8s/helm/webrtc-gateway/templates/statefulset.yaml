@@ -30,6 +30,16 @@ spec:
         command: ["./entrypoint.sh"]
         args: ["start"]
         env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: INSTANCE_NAME
+          value: {{ .Values.instanceName | quote }}
         {{- range $key, $value := .Values.env }}
         - name: {{ $key }}
           value: {{ $value | quote }}
@@ -69,8 +79,10 @@ spec:
               - bash
               - -c
               - |
+                set -euo pipefail
+                LISTEN_FQDN="${POD_NAME}.${INSTANCE_NAME}.${POD_NAMESPACE}.svc.cluster.local"
                 {{- range .Values.sipsak_commands }}
-                {{ . }} &
+                {{ replace "__KAMAILIO_LISTEN_ADDR__" "${LISTEN_FQDN}" . }} &
                 {{- end }}
                 wait
           periodSeconds: 60
@@ -83,8 +95,10 @@ spec:
               - bash
               - -c
               - |
+                set -euo pipefail
+                LISTEN_FQDN="${POD_NAME}.${INSTANCE_NAME}.${POD_NAMESPACE}.svc.cluster.local"
                 {{- range .Values.sipsak_commands }}
-                {{ . }} &
+                {{ replace "__KAMAILIO_LISTEN_ADDR__" "${LISTEN_FQDN}" . }} &
                 {{- end }}
                 wait
           periodSeconds: 5
@@ -92,11 +106,14 @@ spec:
           failureThreshold: 5
 
         livenessProbe:
-          httpGet:
-            scheme: HTTP
-            host: {{ .Values.live_probe_ip }}
-            port: 5060
-            path: /live-probe
+          exec:
+            command:
+              - bash
+              - -c
+              - |
+                set -euo pipefail
+                LISTEN_FQDN="${POD_NAME}.${INSTANCE_NAME}.${POD_NAMESPACE}.svc.cluster.local"
+                curl -sf --connect-timeout 5 "http://${LISTEN_FQDN}:5060/live-probe"
           periodSeconds: 300
           timeoutSeconds: 10
           failureThreshold: 3
