@@ -93,9 +93,9 @@ jobs:
             --namespace webrtc-gateway \
             --debug \
             > /tmp/webrtc-gateway-rendered.yaml
-          grep -q '__KAMAILIO_LISTEN_POD_SET_FQDN__' /tmp/registrar-server-rendered.yaml
-          grep -q '__KAMAILIO_LISTEN_INSTANCE_FQDN__' /tmp/registrar-server-rendered.yaml
-          ! grep -q '127\.0\.0\.2' /tmp/registrar-server-rendered.yaml
+          grep -q '__KAMAILIO_LISTEN_POD_SET_FQDN__' /tmp/webrtc-gateway-rendered.yaml
+          grep -q '__KAMAILIO_LISTEN_INSTANCE_FQDN__' /tmp/webrtc-gateway-rendered.yaml
+          ! grep -q '127\.0\.0\.2' /tmp/webrtc-gateway-rendered.yaml
 
       - name: Helm install
         run: |
