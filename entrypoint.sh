@@ -22,35 +22,37 @@ copy_config_from_mount() {
     fi
 }
 
-# Replace __KAMAILIO_LISTEN_ADDR__ with pod DNS (${POD_NAME}.${INSTANCE_NAME}.${POD_NAMESPACE}.svc.cluster.local).
-substitute_kamailio_listen_addr() {
-    local tok="__KAMAILIO_LISTEN_ADDR__" cfg="${CONFIGS_FOLDER}/config.cfg"
+# Replace every occurrence of $1 with $2 in config.cfg and PROM_STATS_LISTEN.
+substitute_in_kamailio_config() {
+
+    local tok="$1" val="$2"
+    local cfg="${CONFIGS_FOLDER}/config.cfg"
     [[ -f "$cfg" ]] || { echo "[ERROR] Expected ${cfg} after copy_config_from_mount" >&2; exit 1; }
 
-    local need_cfg=false need_env=false
-    # Avoid `cmd && var=true` under `set -e`: a failed grep or failed [[ aborts the script.
-    if grep -q "$tok" "$cfg" 2>/dev/null; then need_cfg=true; fi
-    if [[ -n "${PROM_STATS_LISTEN:-}" && "${PROM_STATS_LISTEN}" == *"$tok"* ]]; then need_env=true; fi
-    if ! $need_cfg && ! $need_env; then
-        echo "[INFO] No ${tok} in ${cfg} or PROM_STATS_LISTEN; skipping substitution"
-        return 0
+    sed "s|${tok}|${val}|g" "$cfg" >"${cfg}.new" && mv "${cfg}.new" "$cfg"
+    if [[ -n "${PROM_STATS_LISTEN:-}" ]]; then
+        export PROM_STATS_LISTEN="${PROM_STATS_LISTEN//${tok}/${val}}"
     fi
+
+}
+
+substitute_kamailio_fqdn_placeholders() {
 
     [[ -n "${POD_NAME:-}" && -n "${POD_NAMESPACE:-}" && -n "${INSTANCE_NAME:-}" ]] || {
-        echo "[ERROR] POD_NAME, POD_NAMESPACE, and INSTANCE_NAME must be set to replace ${tok}" >&2
+        echo "[ERROR] POD_NAME, POD_NAMESPACE, and INSTANCE_NAME must be set for DNS substitution" >&2
         exit 1
     }
-    local fqdn="${POD_NAME}.${INSTANCE_NAME}.${POD_NAMESPACE}.svc.cluster.local"
-    export LISTEN_FQDN="$fqdn"
 
-    $need_cfg && { sed "s|${tok}|${fqdn}|g" "$cfg" >"${cfg}.new" && mv "${cfg}.new" "$cfg"; }
-    $need_env && export PROM_STATS_LISTEN="${PROM_STATS_LISTEN//${tok}/${fqdn}}"
+    local pod_fqdn inst_fqdn
+    pod_fqdn="${POD_NAME}.${INSTANCE_NAME}.${POD_NAMESPACE}.svc.cluster.local"
+    inst_fqdn="${INSTANCE_NAME}.${POD_NAMESPACE}.svc.cluster.local"
+    export LISTEN_FQDN="$pod_fqdn"
 
-    if grep -q "$tok" "$cfg" || [[ "${PROM_STATS_LISTEN:-}" == *"$tok"* ]]; then
-        echo "[ERROR] ${tok} still present after substitution (config or PROM_STATS_LISTEN)" >&2
-        exit 1
-    fi
-    echo "[INFO] Replaced ${tok} with ${fqdn} (DNS name; Kamailio resolves at startup)"
+    LISTEN_IP=$(getent hosts "$pod_fqdn" | awk '{print $1}')
+    export LISTEN_IP="$LISTEN_IP"
+
+    substitute_in_kamailio_config "__KAMAILIO_LISTEN_POD_SET_FQDN__" "$pod_fqdn"
+    substitute_in_kamailio_config "__KAMAILIO_LISTEN_INSTANCE_FQDN__" "$inst_fqdn"
 }
 
 case "$1" in
@@ -61,7 +63,7 @@ case "$1" in
         ##start_rsyslogd
         echo "Hello"
         copy_config_from_mount
-        substitute_kamailio_listen_addr
+        substitute_kamailio_fqdn_placeholders
         /usr/sbin/kamailio -c -DDD -u $STARTER_KAM_USER -g $STARTER_KAM_GROUP -f $CONFIGS_FOLDER/$CFGFILE -m $SHM_MEMORY -M $PKG_MEMORY
         /usr/sbin/kamailio -DD -u $STARTER_KAM_USER -g $STARTER_KAM_GROUP -f $CONFIGS_FOLDER/$CFGFILE -m $SHM_MEMORY -M $PKG_MEMORY
         ;;

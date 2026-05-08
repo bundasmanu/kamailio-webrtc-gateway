@@ -6,7 +6,7 @@
 #   <instanceName>-<ordinal>.<instanceName>.<namespace>.svc.cluster.local
 # Only one release per namespace should share the same instanceName (fixed K8s names, not Helm release).
 #
-# __KAMAILIO_LISTEN_ADDR__ must be replaced before Kamailio starts: entrypoint.sh substitutes it with
+# __KAMAILIO_LISTEN_POD_SET_FQDN__ must be replaced before Kamailio starts: entrypoint.sh substitutes it with
 # ${POD_NAME}.${INSTANCE_NAME}.${POD_NAMESPACE}.svc.cluster.local using downward API env vars from the
 # StatefulSet. Kamailio binds using that DNS name (resolved at process startup). Do not commit real IPs
 # here for per-pod listen addresses.
@@ -27,13 +27,14 @@ image:
 hostNetwork: false
 
 listens:
-  - "__KAMAILIO_LISTEN_ADDR__:5060 name \"lan-internal\""
+  - "__KAMAILIO_LISTEN_POD_SET_FQDN__:5060 name \"lan-internal\""
 
 aliases:
-  - "__KAMAILIO_LISTEN_ADDR__"
+  - "__KAMAILIO_LISTEN_POD_SET_FQDN__"
+  - "__KAMAILIO_LISTEN_INSTANCE_FQDN__"
 
 sipsak_commands:
-  - "sipsak -s sip:__KAMAILIO_LISTEN_ADDR__:5060 -H __KAMAILIO_LISTEN_ADDR__"
+  - "sipsak -s sip:__KAMAILIO_LISTEN_POD_SET_FQDN__:5060 -H __KAMAILIO_LISTEN_POD_SET_FQDN__"
 
 env:
   CONFIGS_FOLDER: "/etc/kamailio"
@@ -60,7 +61,7 @@ env:
   DISPATCHER_DEFAULT_SOCKNAME: "lan-internal"
 
   # Prometheus stats (if WITH_PROM_STATS is enabled)
-  PROM_STATS_LISTEN: "tcp:__KAMAILIO_LISTEN_ADDR__:8123"
+  PROM_STATS_LISTEN: "tcp:__KAMAILIO_LISTEN_POD_SET_FQDN__:8123"
 
   WITH_TLS: "true"
   #TLS_CERTIFICATE: "/etc/kamailio/certs/tls.crt"

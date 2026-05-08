@@ -32,7 +32,7 @@ jobs:
             --agents 1
 
       # Hub image `latest` may lag this repo; Kamailio needs entrypoint substitution for
-      # __KAMAILIO_LISTEN_ADDR__. Build from Dockerfile and import into k3d so CI matches git HEAD.
+      # __KAMAILIO_LISTEN_POD_SET_FQDN__. Build from Dockerfile and import into k3d so CI matches git HEAD.
       - name: Load build environment (.env)
         run: grep -v '^#' .env | grep -v '^$' >> "$GITHUB_ENV"
 
@@ -93,8 +93,9 @@ jobs:
             --namespace webrtc-gateway \
             --debug \
             > /tmp/webrtc-gateway-rendered.yaml
-          grep -q '__KAMAILIO_LISTEN_ADDR__' /tmp/webrtc-gateway-rendered.yaml
-          ! grep -q '127\.0\.0\.2' /tmp/webrtc-gateway-rendered.yaml
+          grep -q '__KAMAILIO_LISTEN_POD_SET_FQDN__' /tmp/registrar-server-rendered.yaml
+          grep -q '__KAMAILIO_LISTEN_INSTANCE_FQDN__' /tmp/registrar-server-rendered.yaml
+          ! grep -q '127\.0\.0\.2' /tmp/registrar-server-rendered.yaml
 
       - name: Helm install
         run: |

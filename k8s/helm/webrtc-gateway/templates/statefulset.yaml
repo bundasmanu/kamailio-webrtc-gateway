@@ -40,6 +40,7 @@ spec:
               fieldPath: metadata.namespace
         - name: INSTANCE_NAME
           value: {{ .Values.instanceName | quote }}
+
         {{- range $key, $value := .Values.env }}
         - name: {{ $key }}
           value: {{ $value | quote }}
@@ -73,38 +74,6 @@ spec:
         {{- end }}
         resources: {}
 
-        readinessProbe:
-          exec:
-            command:
-              - bash
-              - -c
-              - |
-                set -euo pipefail
-                LISTEN_FQDN="${POD_NAME}.${INSTANCE_NAME}.${POD_NAMESPACE}.svc.cluster.local"
-                {{- range .Values.sipsak_commands }}
-                {{ replace "__KAMAILIO_LISTEN_ADDR__" "${LISTEN_FQDN}" . }} &
-                {{- end }}
-                wait
-          periodSeconds: 60
-          timeoutSeconds: 5
-          failureThreshold: 3
-
-        startupProbe:
-          exec:
-            command:
-              - bash
-              - -c
-              - |
-                set -euo pipefail
-                LISTEN_FQDN="${POD_NAME}.${INSTANCE_NAME}.${POD_NAMESPACE}.svc.cluster.local"
-                {{- range .Values.sipsak_commands }}
-                {{ replace "__KAMAILIO_LISTEN_ADDR__" "${LISTEN_FQDN}" . }} &
-                {{- end }}
-                wait
-          periodSeconds: 5
-          timeoutSeconds: 5
-          failureThreshold: 5
-
         livenessProbe:
           exec:
             command:
@@ -114,7 +83,7 @@ spec:
                 set -euo pipefail
                 LISTEN_FQDN="${POD_NAME}.${INSTANCE_NAME}.${POD_NAMESPACE}.svc.cluster.local"
                 curl -sf --connect-timeout 5 "http://${LISTEN_FQDN}:5060/live-probe"
-          periodSeconds: 300
+          periodSeconds: 10
           timeoutSeconds: 10
           failureThreshold: 3
 
