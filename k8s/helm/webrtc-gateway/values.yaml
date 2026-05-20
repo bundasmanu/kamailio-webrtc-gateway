@@ -53,9 +53,9 @@ env:
   WITH_LOG_STDERR: "true"
   #WITH_ASYNC_INSERT: "true"
   #WITH_DMQUEUE: "true"
+  #WITH_RTPENGINE: "true"
   #WITH_FAIL2BAN_SUPPORT: "true"
   WITH_MID_REGISTRAR_SUPPORT: "true"
-  ONLY_ONE_INTERNAL_SETID_DISPATCHER: "true"
 
   ## sockets info
   DISPATCHER_DEFAULT_SOCKNAME: "lan-internal"

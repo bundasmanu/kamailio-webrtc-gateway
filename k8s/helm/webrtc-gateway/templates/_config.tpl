@@ -9,6 +9,7 @@
 #!trydefenvs WITH_LOG_STDERR
 #!trydefenvs WITH_ASYNC_INSERT
 #!trydefenvs WITH_DMQUEUE
+#!trydefenvs WITH_RTPENGINE
 #!trydefenvs WITH_FAIL2BAN_SUPPORT
 #!trydefenvs WITH_MID_REGISTRAR_SUPPORT
 
