@@ -41,6 +41,9 @@ spec:
         - name: INSTANCE_NAME
           value: {{ .Values.instanceName | quote }}
 
+        - name: DMQUEUE_PEER_NODE
+          value: "$(INSTANCE_NAME).$(POD_NAMESPACE).svc.cluster.local"
+
         {{- range $key, $value := .Values.env }}
         - name: {{ $key }}
           value: {{ $value | quote }}
