@@ -25,8 +25,9 @@ jobs:
           version: 'v3.16.0'
 
       - name: Create k3d cluster
-        uses: AbsaOSS/k3d-action@v2
+        uses: AbsaOSS/k3d-action@v2.4.0
         with:
+          k3d-version: v5.8.3
           cluster-name: ${{ env.K3D_CLUSTER_NAME }}
           args: >-
             --agents 1
