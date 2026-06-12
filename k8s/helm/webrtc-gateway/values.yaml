@@ -27,7 +27,9 @@ image:
 hostNetwork: false
 
 listens:
-  - "__KAMAILIO_LISTEN_POD_SET_FQDN__:5060 name \"lan-internal\""
+  - "udp:__KAMAILIO_LISTEN_POD_SET_FQDN__:5060 name \"lan-internal\""
+  - "tcp:__KAMAILIO_LISTEN_POD_SET_FQDN__:5060 name \"lan-internal-tcp\""
+  - "tls:__KAMAILIO_LISTEN_POD_SET_FQDN__:5061 name \"lan-internal-tls\""
 
 aliases:
   - "__KAMAILIO_LISTEN_POD_SET_FQDN__"

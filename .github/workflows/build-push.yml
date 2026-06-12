@@ -26,7 +26,7 @@ jobs:
       - name: Load environment variables from .env
         run: grep -v '^#' .env | grep -v '^$' >> $GITHUB_ENV
 
-  webrtc-gateway-build-image:
+  webrtc-gateway-build-push-image:
     needs: load-env-vars
     runs-on: ubuntu-latest
     steps:
