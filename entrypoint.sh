@@ -51,6 +51,8 @@ substitute_kamailio_fqdn_placeholders() {
     LISTEN_IP=$(getent hosts "$pod_fqdn" | awk '{print $1}')
     export LISTEN_IP="$LISTEN_IP"
 
+    export INST_FQDN="$inst_fqdn"
+
     substitute_in_kamailio_config "__KAMAILIO_LISTEN_POD_SET_FQDN__" "$pod_fqdn"
     substitute_in_kamailio_config "__KAMAILIO_LISTEN_INSTANCE_FQDN__" "$inst_fqdn"
 }
